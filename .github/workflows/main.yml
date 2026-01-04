@@ -1,0 +1,45 @@
+name: bulletproof-forge-v14-7
+on: [push, workflow_dispatch]
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: ⚙️ Setup Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          
+      - name: 📦 Install Systeem-Deps (Chrome/Puppeteer)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgbm-dev libnss3 libatk-bridge2.0-0 libgtk-3-0 libasound2 libxshmfence-dev
+          
+      - name: 🛡️ Install JS Logic
+        run: |
+          npm install puppeteer-extra puppeteer-extra-plugin-stealth @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+          # This ensures Puppeteer has its own stable Chromium
+          npx puppeteer browsers install chrome
+          
+      - name: 🕶️ Scrape (Bulletproof Protocol)
+        run: node scraper.js
+        env:
+          AI_URL: ${{ secrets.AI_URL }}
+          SESSION_COOKIES: ${{ secrets.SESSION_COOKIES }}
+          
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          
+      - name: 🏗️ Forge APK
+        run: node convert-to-apk.js
+        
+      - name: 📦 Deliver Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bulletproof-AI-Native-V14-7-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
